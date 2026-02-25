@@ -1,0 +1,31 @@
+# ==============================================================================
+# REQUIRED API KEYS FOR SOC AUTOMATION BOT
+# ==============================================================================
+# Insert your actual keys below. By default, the system uses 'MOCK' to simulate
+# responses if no key is provided. Once filled out, copy these values into your
+# .env file.
+# ==============================================================================
+
+# 1. VirusTotal (IP/Hash Threat Intel Enrichment)
+# Get your API key here: https://www.virustotal.com/gui/my-apikey
+VIRUSTOTAL_API_KEY=INSERT_YOUR_VIRUSTOTAL_API_KEY_HERE
+
+# 2. AbuseIPDB (IP Reputation & Historical Abuse Reports)
+# Get your API key here: https://www.abuseipdb.com/account/api
+ABUSEIPDB_API_KEY=INSERT_YOUR_ABUSEIPDB_API_KEY_HERE
+
+# 3. AlienVault OTX (Threat Indicators & Pulses)
+# Get your API key here: https://otx.alienvault.com/api
+OTX_API_KEY=INSERT_YOUR_OTX_API_KEY_HERE
+
+# 4. Slack (Alert Notifications & Automated Messaging)
+# Create a webhook here: https://api.slack.com/messaging/webhooks
+SLACK_WEBHOOK_URL=INSERT_YOUR_SLACK_WEBHOOK_URL_HERE
+SLACK_ALERT_CHANNEL=#security-alerts
+
+# 5. Jira (Automated Incident Ticket Creation)
+# Get your token here: https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/
+JIRA_URL=INSERT_YOUR_JIRA_URL_HERE (e.g., https://yourcompany.atlassian.net)
+JIRA_EMAIL=INSERT_YOUR_JIRA_EMAIL_HERE
+JIRA_API_TOKEN=INSERT_YOUR_JIRA_API_TOKEN_HERE
+JIRA_PROJECT_KEY=SOC
