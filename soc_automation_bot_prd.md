@@ -94,7 +94,7 @@ graph TD
     end
     
     subgraph "Storage & UI"
-        Worker -->|Store State| DB[(Primary DB - PostgreSQL)]
+        Worker -->|Store State| DB[(Primary DB - Supabase PostgreSQL)]
         Worker -->|Log Events| Logs[(Elasticsearch)]
         UI[Web Dashboard] -->|Read| DB
         UI -->|Read| Logs
@@ -141,7 +141,7 @@ sequenceDiagram
 2.  **Message Queue (Redis):** Decouples ingestion from processing to handle alert spikes and ensure message delivery.
 3.  **Orchestration Engine (Celery/Python):** The "brain" that coordinates the workflow (Normalize -> Enrich -> Analyze -> Respond). scales horizontally.
 4.  **Decision Engine:** Evaluates normalized data against defined rules (YAML playbooks) to determine actions.
-5.  **Database (PostgreSQL):** Stores structured alert data, playbook configurations, user profiles, and audit trails.
+5.  **Database (Supabase PostgreSQL):** Remote managed database that stores structured alert data, playbook configurations, user profiles, and audit trails.
 6.  **Logging (ELK Stack):** Centralized logging for system health and security audit.
 
 ---
@@ -179,9 +179,6 @@ soc-automation-bot/
 │   ├── integration/
 │   └── conftest.py
 ├── scripts/                    # Utility scripts (db migration, setup)
-├── docker-compose.yml          # Container orchestration
-├── Dockerfile.api              # Dockerfile for API service
-├── Dockerfile.worker           # Dockerfile for Celery worker
 ├── requirements.txt            # Python dependencies
 ├── alembic.ini                 # Database migration config
 └── README.md                   # Project documentation
@@ -393,11 +390,11 @@ CREATE TABLE users (
 | Component | Technology | Rationale |
 | :--- | :--- | :--- |
 | **Backend Framework** | Python (FastAPI) | High performance (async), auto-generated Swagger UI, strong typing. |
-| **Task Queue** | Celery + Redis | Standard for Python background tasks; supports periodic tasks (Cron). |
-| **Database** | PostgreSQL | Reliability, complex querying, JSONB support for flexible schemas. |
-| **Frontend** | React (Next.js) + TailwindCSS | Modern, component-based, fast development, responsive design. |
-| **Visualization** | Recharts / Chart.js | JavaScript libraries defined for React integration. |
-| **Containerization** | Docker & Docker Compose | Simplified deployment and dependency management. |
+| **Task Queue** | Celery + Upstash Redis | Standard for Python background tasks; supports periodic tasks (Cron). Managed via Upstash. |
+| **Database** | Supabase PostgreSQL | Reliability, complex querying, JSONB support for flexible schemas. Managed via Supabase Connection Pooling. |
+| **Frontend** | React (Vite) + TailwindCSS | Modern, component-based, fast development, responsive design. |
+| **Visualization** | Recharts / Material UI | React component libraries for dashboard metrics. |
+| **Deployment** | Local Virtual Environment + Cloud DBs | Rapid local development connecting natively to managed cloud DB and Cache services mapped via `.env`. |
 | **Testing** | Pytest (Backend), Jest (Frontend) | Standard testing frameworks. |
 
 ---

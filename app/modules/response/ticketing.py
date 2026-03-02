@@ -54,7 +54,7 @@ class JiraTicketAction(BaseAction):
                         }
                     ],
                 },
-                "issuetype": {"name": "Bug"},
+                "issuetype": {"name": "Task"},
                 "priority": {"name": self._severity_to_jira_priority(severity)},
                 "labels": ["soc-automation", f"severity-{severity.lower()}"],
             }

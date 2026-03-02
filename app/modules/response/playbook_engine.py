@@ -101,6 +101,7 @@ class PlaybookEngine:
         action_name: str,
         params: Dict[str, Any],
         executed_by: str = "system",
+        playbook_id: Optional[str] = None,
     ) -> ActionResult:
         """Execute a single named action and persist the result to DB."""
         action_class = ACTION_REGISTRY.get(action_name)
@@ -135,6 +136,7 @@ class PlaybookEngine:
             status="Success" if result.success else "Failure",
             output_log=result.output_log,
             executed_by=executed_by,
+            playbook_id=playbook_id,
         )
 
         return result

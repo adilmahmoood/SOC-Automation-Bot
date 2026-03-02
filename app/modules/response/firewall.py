@@ -3,9 +3,11 @@ from __future__ import annotations
 import logging
 import subprocess
 import platform
+import ipaddress
 from typing import Any, Dict
 
 from app.modules.response.base import BaseAction, ActionResult
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +24,9 @@ class FirewallAction(BaseAction):
 
     def execute(self, params: Dict[str, Any]) -> ActionResult:
         ip_address = params.get("ip_address") or params.get("src_ip")
+        target_key = params.get("target")
+        if not ip_address and isinstance(target_key, str):
+            ip_address = params.get(target_key)
         chain = params.get("chain", "INPUT")  # Only relevant for iptables
         simulate = params.get("simulate", True)  # Default: simulate in dev
 
@@ -31,6 +36,16 @@ class FirewallAction(BaseAction):
                 action_name=self.action_name,
                 output_log="No IP address provided for blocking.",
                 error="Missing parameter: ip_address",
+            )
+
+        try:
+            ipaddress.ip_address(str(ip_address))
+        except ValueError:
+            return ActionResult(
+                success=False,
+                action_name=self.action_name,
+                output_log=f"Invalid IP address: {ip_address}",
+                error="Invalid IP address",
             )
 
         os_type = platform.system().lower()
@@ -51,6 +66,16 @@ class FirewallAction(BaseAction):
                 action_name=self.action_name,
                 output_log=log_msg,
                 data={"ip_address": ip_address, "tool": tool, "simulated": True},
+            )
+
+        if not settings.FIREWALL_ALLOW_EXECUTION:
+            log_msg = f"[{tool}] Execution blocked by FIREWALL_ALLOW_EXECUTION=false"
+            logger.warning(f"[Firewall] {log_msg}")
+            return ActionResult(
+                success=False,
+                action_name=self.action_name,
+                output_log=log_msg,
+                error="Firewall execution disabled by config",
             )
 
         # Real execution (Requires Administrator/Root privileges)

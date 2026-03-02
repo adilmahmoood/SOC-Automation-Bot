@@ -39,8 +39,10 @@ class Alert(Base):
         default="New",
         nullable=False,
     )
+    incident_id = Column(UUID(as_uuid=True), ForeignKey("incidents.id", ondelete="SET NULL"), nullable=True)
 
     # Relationships
+    incident = relationship("Incident", back_populates="alerts")
     enrichment_results = relationship("EnrichmentResult", back_populates="alert", cascade="all, delete")
     action_logs = relationship("ActionLog", back_populates="alert", cascade="all, delete")
 
@@ -99,9 +101,59 @@ class Playbook(Base):
     is_active = Column(Boolean, default=True)
     trigger_severity = Column(ARRAY(String), nullable=True)
     steps_definition = Column(JSONB, nullable=False)
+    created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
+    updated_at = Column(TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now())
 
     def __repr__(self):
-        return f"<Playbook {self.name}>"
+        return f"<Playbook {self.name} active={self.is_active}>"
+
+class Incident(Base):
+    __tablename__ = "incidents"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    title = Column(String(200), nullable=False)
+    description = Column(Text, nullable=True)
+    severity = Column(
+        String(20),
+        CheckConstraint("severity IN ('Info','Low','Medium','High','Critical')"),
+        nullable=True,
+    )
+    status = Column(
+        String(20),
+        CheckConstraint("status IN ('Open','InProgress','Resolved','FalsePositive')"),
+        default="Open",
+        nullable=False,
+    )
+    created_at = Column(TIMESTAMP(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now())
+    resolved_at = Column(TIMESTAMP(timezone=True), nullable=True)
+    assignee = Column(String(100), nullable=True)
+    category = Column(String(100), nullable=True)
+
+    # Relationships
+    alerts = relationship("Alert", back_populates="incident")
+
+    def __repr__(self):
+        return f"<Incident id={self.id} severity={self.severity} status={self.status}>"
+
+class ThreatIndicator(Base):
+    __tablename__ = "threat_indicators"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    indicator_type = Column(String(50), nullable=False)   # ip, domain, hash, url
+    indicator_value = Column(Text, unique=True, nullable=False)
+    risk_level = Column(
+        String(20),
+        CheckConstraint("risk_level IN ('Low','Medium','High','Critical')"),
+        nullable=False,
+    )
+    country = Column(String(100), nullable=True)
+    first_seen = Column(TIMESTAMP(timezone=True), server_default=func.now(), nullable=False)
+    last_seen = Column(TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now())
+    occurrence_count = Column(Integer, default=1)
+
+    def __repr__(self):
+        return f"<ThreatIndicator {self.indicator_type}:{self.indicator_value} risk={self.risk_level}>"
 
 
 class User(Base):
@@ -121,3 +173,10 @@ class User(Base):
 
     def __repr__(self):
         return f"<User {self.username} ({self.role})>"
+
+
+class SystemSettings(Base):
+    __tablename__ = "system_settings"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    payload = Column(JSONB, nullable=False)

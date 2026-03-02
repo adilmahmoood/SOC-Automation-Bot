@@ -53,6 +53,9 @@ class Settings(BaseSettings):
     JIRA_API_TOKEN: str = "MOCK"
     JIRA_PROJECT_KEY: str = "SOC"
 
+    # ── Firewall / Blocking ───────────────────────────────────────────────────
+    FIREWALL_ALLOW_EXECUTION: bool = False
+
     # ── Risk Thresholds ────────────────────────────────────────────────────────
     RISK_SCORE_LOW_THRESHOLD: int = 20
     RISK_SCORE_MEDIUM_THRESHOLD: int = 40

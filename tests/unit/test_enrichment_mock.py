@@ -2,6 +2,15 @@ import pytest
 from app.modules.enrichment.virustotal import VirusTotalEnricher
 from app.modules.enrichment.abuseipdb import AbuseIPDBEnricher
 from app.modules.enrichment.otx import OTXEnricher
+from app.core.config import Settings
+
+
+@pytest.fixture(autouse=True)
+def force_mock_keys(monkeypatch):
+    """Force enrichers to use mock mode even when real API keys exist in env."""
+    def always_mock(self, key_name):
+        return True
+    monkeypatch.setattr(Settings, "is_mock", always_mock)
 
 
 # All tests run in mock mode (API keys = MOCK in test environment)

@@ -54,7 +54,11 @@ class RiskScorer:
         raw_score = severity_component + tip_component + recurrence_component
         risk_score = min(100, max(0, int(round(raw_score))))
 
-        severity_label = self._score_to_severity(risk_score)
+        # When no TIP data, trust source severity for the label
+        if not enrichment_results:
+            severity_label = normalized_data.get("severity", "Low")
+        else:
+            severity_label = self._score_to_severity(risk_score)
 
         logger.info(
             f"[RiskScorer] base={base_score} tip_avg={avg_tip_score:.2f} "

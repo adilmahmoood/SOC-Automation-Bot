@@ -2,13 +2,19 @@ from __future__ import annotations
 
 import uuid
 import logging
+import httpx
+import json
 from typing import Optional
+from datetime import datetime, timedelta
 
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.celery_app import celery_app
 from app.database.session import SessionLocal
 from app.database import crud
+from app.modules.reporting.generator import generate_report_data
+from app.modules.reporting.templates import format_slack_report
 
 logger = logging.getLogger(__name__)
 
@@ -88,13 +94,45 @@ def process_alert(self, alert_id: str) -> dict:
         logger.info(f"[Task] Risk score: {risk_score} → Severity: {severity}")
 
         # ── 5. Execute Playbook ────────────────────────────────────────────────
+        from app.modules.analysis.decision_engine import evaluate_playbooks
         from app.modules.response.playbook_engine import PlaybookEngine
-        engine = PlaybookEngine(db=db, alert_id=alert_id)
-        engine.run(severity=severity, normalized_data=normalized_data)
-        logger.info(f"[Task] Playbook execution complete for {alert_id}")
+        
+        actions_to_run = evaluate_playbooks(db, alert)
+        
+        if actions_to_run:
+            engine = PlaybookEngine(db=db, alert_id=alert_id)
+            for action in actions_to_run:
+                action_id = action.get("id")
+                params = action.get("parameters", {})
+                params.update({
+                    "alert_id": alert_id,
+                    "severity": severity,
+                    "src_ip": normalized_data.get("src_ip", "unknown"),
+                    "event_type": normalized_data.get("event_type", "unknown"),
+                    "risk_score": risk_score,
+                })
+                playbook_id = action.get("playbook_id")
+                engine.run_single_action(action_id, params, playbook_id=playbook_id)
+
+        logger.info(f"[Task] Playbook execution complete for {alert_id}, executed {len(actions_to_run)} actions.")
 
         # ── 6. Finalize ────────────────────────────────────────────────────────
         crud.update_alert_status(db, alert_id, "Closed" if severity in ("Info", "Low") else "InProgress")
+
+        # Broadcast real-time ping to WebSocket clients
+        try:
+            import redis
+            from app.core.websockets import REDIS_URL, ALERTS_CHANNEL
+            sync_redis = redis.Redis.from_url(REDIS_URL)
+            payload = json.dumps({
+                "event": "alert_processed", 
+                "alert_id": alert_id, 
+                "severity": severity,
+                "msg": f"New {severity} threat processed!"
+            })
+            sync_redis.publish(ALERTS_CHANNEL, payload)
+        except Exception as ws_err:
+            logger.error(f"[Task] Failed to publish WebSocket event: {ws_err}")
 
         return {
             "status": "success",
@@ -135,3 +173,68 @@ def _extract_observables(normalized_data: dict) -> list[tuple[str, str]]:
             observables.append(("hash", val))
 
     return list(set(observables))  # deduplicate
+
+@celery_app.task(
+    bind=True,
+    name="app.core.tasks.generate_and_send_report",
+    max_retries=3,
+    default_retry_delay=5,
+)
+def generate_and_send_report(self, timeframe: str = "Daily", hours: int = 24) -> dict:
+    """
+    Background task to generate aggregated SOC metric reports and send them to Slack.
+    """
+    db: Session = SessionLocal()
+    try:
+        end_time = datetime.utcnow()
+        start_time = end_time - timedelta(hours=hours)
+
+        # Generate metrics
+        report_data = generate_report_data(db, start_time, end_time)
+
+        # Format layout
+        slack_blocks = format_slack_report(report_data, timeframe)
+
+        # Send via Webhook
+        if settings.is_mock("SLACK_WEBHOOK_URL"):
+            logger.info(f"[Reporting] MOCK Slack Report:\n{json.dumps(slack_blocks, indent=2)}")
+        else:
+            with httpx.Client(timeout=10.0) as client:
+                response = client.post(
+                    settings.SLACK_WEBHOOK_URL,
+                    headers={"Content-Type": "application/json"},
+                    content=json.dumps({"blocks": slack_blocks["blocks"], "channel": settings.SLACK_ALERT_CHANNEL}),
+                )
+                response.raise_for_status()
+
+        logger.info(f"[Reporting] Sent {timeframe} SOC Report to Slack.")
+        return {
+            "status": "success",
+            "timeframe": timeframe,
+            "reports_sent": len(channels_list)
+        }
+        
+    except Exception as e:
+        logger.error(f"[Task] Report generation failed: {str(e)}")
+        return {"status": "error", "message": str(e)}
+    finally:
+        db.close()
+
+@celery_app.task(
+    bind=True,
+    name="app.core.tasks.run_aggregation",
+    max_retries=1,
+)
+def run_aggregation(self) -> dict:
+    """
+    Background job to periodically scan Alerts and aggregate them into Incidents and Threat Intel.
+    """
+    from app.core.aggregation import aggregate_incidents
+    try:
+        aggregate_incidents()
+        return {"status": "success", "message": "Aggregation completed"}
+    except Exception as e:
+        logger.error(f"[Task] Aggregation failed: {str(e)}")
+        return {"status": "error", "message": str(e)}
+    finally:
+        db.close()

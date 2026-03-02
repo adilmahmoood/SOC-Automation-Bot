@@ -1,4 +1,5 @@
 from celery import Celery
+from celery.schedules import crontab
 from app.core.config import settings
 
 celery_app = Celery(
@@ -34,5 +35,20 @@ celery_app.conf.update(
     # Routes
     task_routes={
         "app.core.tasks.process_alert": {"queue": "alerts"},
+        "app.core.tasks.generate_and_send_report": {"queue": "celery"},
+        "app.core.tasks.run_aggregation": {"queue": "celery"},
     },
+
+    # Scheduled Tasks
+    beat_schedule={
+        "daily-soc-report": {
+            "task": "app.core.tasks.generate_and_send_report",
+            "schedule": crontab(hour=17, minute=0),  # Run daily at 17:00 UTC
+            "kwargs": {"timeframe": "Daily", "hours": 24},
+        },
+        "aggregate-incidents-every-15-mins": {
+            "task": "app.core.tasks.run_aggregation",
+            "schedule": crontab(minute="*/15"),
+        }
+    }
 )

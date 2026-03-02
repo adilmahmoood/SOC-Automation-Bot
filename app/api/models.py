@@ -7,6 +7,36 @@ from uuid import UUID
 from pydantic import BaseModel, Field, validator
 
 
+# ─── Auth Models ─────────────────────────────────────────────────────────────
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class UserResponse(BaseModel):
+    id: UUID
+    username: str
+    email: str
+    role: str
+    is_active: bool
+
+    class Config:
+        from_attributes = True
+
+class UserCreateRequest(BaseModel):
+    username: str
+    email: str
+    password: str
+    role: str = "Analyst"
+
+
+class UserUpdateRequest(BaseModel):
+    email: Optional[str] = None
+    role: Optional[str] = None
+    is_active: Optional[bool] = None
+    password: Optional[str] = None
+
+
 # ─── Request Models ───────────────────────────────────────────────────────────
 
 class AlertIngestionRequest(BaseModel):
@@ -99,3 +129,155 @@ class HealthResponse(BaseModel):
     status: str
     version: str = "1.0.0"
     environment: str
+
+# ─── Playbook Models ──────────────────────────────────────────────────────────
+
+class PlaybookResponse(BaseModel):
+    id: UUID
+    name: str
+    description: Optional[str]
+    is_active: bool
+    trigger_severity: Optional[List[str]] = Field(default_factory=list)
+    steps_definition: Optional[Dict[str, Any]] = Field(default_factory=dict)
+
+    class Config:
+        from_attributes = True
+
+class PlaybookCreateRequest(BaseModel):
+    name: str = Field(..., max_length=100)
+    description: Optional[str] = Field(None, max_length=500)
+    is_active: bool = True
+    trigger_severity: List[str]
+    steps_definition: Dict[str, Any]
+
+class PlaybookToggleRequest(BaseModel):
+    is_active: bool
+
+class ExecutionResponse(BaseModel):
+    id: UUID
+    playbook: str
+    action_name: str
+    timestamp: str
+    trigger: str
+    status: str
+    duration: str
+
+# ─── Reporting Models ─────────────────────────────────────────────────────────
+
+class ReportGenerationRequest(BaseModel):
+    timeframe: str = Field(default="Ad-Hoc", description="Title for the report timeframe")
+    hours: int = Field(default=24, ge=1, le=720, description="Hours to look back")
+
+class ReportGenerationResponse(BaseModel):
+    status: str
+    timeframe: str
+    job_id: str
+    message: str
+
+# ─── Incident Models ──────────────────────────────────────────────────────────
+
+class IncidentResponse(BaseModel):
+    id: UUID
+    title: str
+    description: Optional[str]
+    severity: Optional[str]
+    status: str
+    created_at: datetime
+    resolved_at: Optional[datetime]
+    assignee: Optional[str]
+    category: Optional[str]
+    alert_count: int
+
+    class Config:
+        from_attributes = True
+
+
+class IncidentCreateRequest(BaseModel):
+    title: str = Field(..., max_length=200)
+    description: Optional[str] = None
+    severity: Optional[str] = None
+    status: str = "Open"
+    assignee: Optional[str] = None
+    category: Optional[str] = None
+
+
+class IncidentListResponse(BaseModel):
+    total: int
+    incidents: List[IncidentResponse]
+
+# ─── Threat Intel Models ──────────────────────────────────────────────────────
+
+class ThreatIntelResponse(BaseModel):
+    id: UUID
+    indicator_type: str
+    indicator_value: str
+    risk_level: str
+    country: Optional[str]
+    first_seen: datetime
+    last_seen: datetime
+    occurrence_count: int
+
+    class Config:
+        from_attributes = True
+
+class ThreatIntelListResponse(BaseModel):
+    total: int
+    threats: List[ThreatIntelResponse]
+
+# ─── Settings / Integrations Models ───────────────────────────────────────────
+
+class SettingsGeneral(BaseModel):
+    organization_name: str
+    time_zone: str
+    date_format: str
+    language: str
+
+
+class SettingsNotifications(BaseModel):
+    critical_alerts: bool
+    incident_updates: bool
+    playbook_failures: bool
+    weekly_reports: bool
+    email: str
+
+
+class SettingsSecurity(BaseModel):
+    two_factor_enabled: bool
+    session_timeout_minutes: int
+    password_min_length: int
+    require_special_chars: bool
+
+
+class SettingsResponse(BaseModel):
+    general: SettingsGeneral
+    notifications: SettingsNotifications
+    security: SettingsSecurity
+
+
+class SettingsUpdateRequest(BaseModel):
+    general: Optional[SettingsGeneral] = None
+    notifications: Optional[SettingsNotifications] = None
+    security: Optional[SettingsSecurity] = None
+
+
+class IntegrationItem(BaseModel):
+    name: str
+    description: str
+    status: str
+    status_detail: Optional[str] = None
+
+
+class IntegrationsResponse(BaseModel):
+    integrations: List[IntegrationItem]
+
+
+class ApiKeyItem(BaseModel):
+    name: str
+    key: str
+    status: Optional[str] = None
+    created: Optional[str] = None
+    last_used: Optional[str] = None
+
+
+class ApiKeysResponse(BaseModel):
+    keys: List[ApiKeyItem]
