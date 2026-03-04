@@ -107,7 +107,7 @@ export function ThreatIntelligence() {
         `Country: ${t.country || ""}`,
         `First Seen: ${firstSeen}`,
         `Last Seen: ${lastSeen}`,
-        `Occurrences: ${t.occurrence_count ?? ""}`,
+        `Occurrences: ${t.occurrences ?? ""}`,
         "---",
       ].join("\n");
     });

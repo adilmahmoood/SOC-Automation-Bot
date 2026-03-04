@@ -47,8 +47,8 @@ class RiskScorer:
         tip_component = avg_tip_score * 100 * 0.40
 
         # ── Component 3: Recurrence / Context (20%) ───────────────────────────
-        # Placeholder: gives 10/20 points by default (can be enhanced later)
-        recurrence_component = 10 * 0.20
+        # Placeholder: gives 100/100 points by default (can be enhanced later)
+        recurrence_component = 100 * 0.20
 
         # ── Aggregate ─────────────────────────────────────────────────────────
         raw_score = severity_component + tip_component + recurrence_component

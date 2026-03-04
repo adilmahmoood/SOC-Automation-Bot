@@ -149,8 +149,8 @@ class ThreatIndicator(Base):
     )
     country = Column(String(100), nullable=True)
     first_seen = Column(TIMESTAMP(timezone=True), server_default=func.now(), nullable=False)
-    last_seen = Column(TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now())
-    occurrence_count = Column(Integer, default=1)
+    last_seen = Column(TIMESTAMP(timezone=True), default=func.now())
+    occurrences = Column(Integer, default=1)
 
     def __repr__(self):
         return f"<ThreatIndicator {self.indicator_type}:{self.indicator_value} risk={self.risk_level}>"

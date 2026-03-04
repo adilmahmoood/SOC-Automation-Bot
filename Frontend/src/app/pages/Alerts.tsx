@@ -69,8 +69,9 @@ export function Alerts() {
       ext_id.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
-  const openCount = alerts.filter(a => ['open', 'in progress', 'investigating'].includes(a.status?.toLowerCase())).length;
-  const resolvedCount = alerts.filter(a => ['resolved', 'mitigated'].includes(a.status?.toLowerCase())).length;
+  // DB alert statuses: 'New', 'InProgress', 'Closed', 'FalsePositive'
+  const openCount = alerts.filter(a => ['new', 'inprogress'].includes(a.status?.toLowerCase())).length;
+  const resolvedCount = alerts.filter(a => ['closed', 'falsepositive'].includes(a.status?.toLowerCase())).length;
   const criticalCount = alerts.filter(a => ['critical', 'high'].includes(a.severity?.toLowerCase())).length;
   const resolutionRate = totalAlerts > 0 ? Math.round((resolvedCount / totalAlerts) * 100) : 0;
 
@@ -106,9 +107,9 @@ export function Alerts() {
           <div className="text-red-400 text-sm mt-2">Active severity level</div>
         </div>
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-          <div className="text-slate-400 text-sm mb-2">Resolved</div>
+          <div className="text-slate-400 text-sm mb-2">Closed</div>
           <div className="text-white text-3xl font-semibold">{resolvedCount}</div>
-          <div className="text-green-400 text-sm mt-2">{resolutionRate}% resolution rate</div>
+          <div className="text-green-400 text-sm mt-2">{resolutionRate}% closure rate</div>
         </div>
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
           <div className="text-slate-400 text-sm mb-2">Active Open</div>

@@ -77,7 +77,7 @@ def aggregate_incidents():
             
             if existing_ti:
                 existing_ti.occurrences += 1
-                existing_ti.last_seen = func.now()
+                existing_ti.last_seen = datetime.utcnow()
                 # Upgrade risk if necessary
                 if risk_level == "High" and existing_ti.risk_level != "Critical":
                     existing_ti.risk_level = "High"

@@ -214,8 +214,8 @@ class ThreatIntelResponse(BaseModel):
     risk_level: str
     country: Optional[str]
     first_seen: datetime
-    last_seen: datetime
-    occurrence_count: int
+    last_seen: Optional[datetime]
+    occurrences: int
 
     class Config:
         from_attributes = True
